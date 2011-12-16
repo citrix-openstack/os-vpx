@@ -1,0 +1,9 @@
+Make xvc0 a secure TTY, so that the user can log in through XenCenter.
+
+--- ./etc/securetty	2010-11-21 17:09:43.000000000 -0500
++++ ./etc/securetty	2010-11-21 17:09:59.000000000 -0500
+@@ -1,3 +1,4 @@
++xvc0
+ console
+ vc/1
+ vc/2
