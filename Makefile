@@ -4,9 +4,20 @@ IMPORT_BRANDING := yes
 NO_DEFAULT_BUILD := yes
 include $(B_BASE)/common.mk
 include $(B_BASE)/rpmbuild.mk
+REPO := /repos/os-vpx
+NOVA_BUILD_REPO := /repos/nova-build
+GLANCE_BUILD_REPO := /repos/glance-build
+SWIFT_BUILD_REPO := /repos/swift-build
+KEYSTONE_BUILD_REPO := /repos/keystone-build
+GEPPETTO_REPO := /repos/geppetto
 else
 COMPONENT := os-vpx
 include ../../mk/easy-config.mk
+NOVA_BUILD_REPO := ../nova-build
+GLANCE_BUILD_REPO := ../glance-build
+SWIFT_BUILD_REPO := ../swift-build
+KEYSTONE_BUILD_REPO := ../keystone-build
+GEPPETTO_REPO := ../geppetto
 endif
 
 VENDOR_CODE := xs
@@ -22,16 +33,7 @@ VERSION_BUILD := $(VERSION)-$(BUILD)
 FS_SIZE_MIB ?= 1200
 DEVEL_FS_SIZE_MIB ?= 2000
 
-REPONAME := os-vpx
-REPO := $(call hg_loc,$(REPONAME))
-VPX_REPO := $(call hg_loc,vpx-base)
-NOVA_REPO := $(call hg_loc,nova)
-GLANCE_REPO := $(call hg_loc,glance)
-SWIFT_REPO := $(call hg_loc,swift)
-KEYSTONE_REPO := $(call hg_loc,keystone)
-GEPPETTO_REPO := $(call hg_loc,geppetto)
-
-include $(VPX_REPO)/make-vpx.mk
+include $(REPO)/make-vpx.mk
 
 PLUGIN_SRC := $(NOVA_REPO)/upstream/plugins/xenserver/xenapi
 NETWORKING_SRC := $(NOVA_REPO)/upstream/plugins/xenserver/networking
@@ -258,18 +260,19 @@ $(VPX_OVERLAY_STAMP): $(REPO)/build-vpx-overlay.sh \
 	touch $@
 
 $(VPX_EASY_INSTALL_STAMP): $(REPO)/build-vpx-easy_install.sh \
-			   $(NOVA_REPO)/easy_install-nova-deps.sh \
-			   $(GLANCE_REPO)/easy_install-glance-deps.sh \
-			   $(SWIFT_REPO)/easy_install-swift-deps.sh \
-			   $(KEYSTONE_REPO)/easy_install-keystone-deps.sh \
+			   $(NOVA_BUILD_REPO)/easy_install-nova-deps.sh \
+			   $(GLANCE_BUILD_REPO)/easy_install-glance-deps.sh \
+			   $(SWIFT_BUILD_REPO)/easy_install-swift-deps.sh \
+			   $(KEYSTONE_BUILD_REPO)/easy_install-keystone-deps.sh \
 			   $(GEPPETTO_REPO)/easy_install-geppetto-deps.sh \
 			   $(REPO)/os-vpx.cfg \
 			   $(VPX_CHROOT_STAMP)
-	sh $< $(REPO)/os-vpx.cfg $(NOVA_REPO) $(GLANCE_REPO) $(SWIFT_REPO) \
-				 $(KEYSTONE_REPO) $(GEPPETTO_REPO)
+	sh $< $(REPO)/os-vpx.cfg $(NOVA_BUILD_REPO) $(GLANCE_BUILD_REPO) \
+				 $(SWIFT_BUILD_REPO) $(KEYSTONE_BUILD_REPO) \
+				 $(GEPPETTO_REPO)
 	touch $@
 
-$(VPX_CHROOT_STAMP): $(REPO)/os-vpx.cfg $(VPX_REPO)/vpx-chroot/* \
+$(VPX_CHROOT_STAMP): $(REPO)/os-vpx.cfg $(REPO)/vpx-chroot/* \
 		     $(GU_YUM_DIR)/repodata/repomd.xml \
 		     $(XE_CLI_YUM_DIR)/repodata/repomd.xml \
 		     $(EPEL_YUM_DIR)/repodata/repomd.xml \
@@ -293,7 +296,7 @@ $(VPX_UBUNTU_OVERLAY_STAMP): $(REPO)/build-vpx-overlay.sh \
 	$(EATMYDATA) $(SUDO) bash $< '' $(VERSION_BUILD) $(@D) $(SCRIPTS_DEB)
 	$(SUDO) touch $@
 
-$(VPX_UBUNTU_CHROOT_STAMP): $(VPX_REPO)/vpx-chroot/* \
+$(VPX_UBUNTU_CHROOT_STAMP): $(REPO)/vpx-chroot/* \
 			    $(REPO)/vpx-packages.txt \
 			    $(shell find $(PROJECT_OUTPUTDIR)/packages -type f) \
 			    $(shell find $(PROJECT_OUTPUTDIR)/nova -type f) \
