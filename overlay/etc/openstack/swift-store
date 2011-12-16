@@ -1,0 +1,2 @@
+SWIFT_DISK_SIZE_GB=10
+SWIFT_DEVICES='xvdf xvdg'

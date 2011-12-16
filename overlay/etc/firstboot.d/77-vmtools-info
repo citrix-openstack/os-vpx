@@ -1,0 +1,48 @@
+#!/bin/sh 
+
+set -eu
+
+if [ ! -e '/usr/bin/vmtoolsd' ];
+then
+    #Case of VPX without VMware vmtools installed. Graceful exit.
+    exit 0
+fi
+
+echo "VMware vmtools detected. Reading guest information from vmtools."
+
+VM_NAME_FILE='/etc/openstack/vpx-uuid'
+HOSTIP_FILE='/etc/openstack/vmware-url'
+ESX_CMDLINE_FILE='/var/lib/geppetto/esx_kernel_cmd_line'
+
+esx_kernel_cmd_line_content=`cat /proc/cmdline`
+
+if [ ! -d '/etc/openstack' ];
+then 
+    mkdir '/etc/openstack'
+fi
+
+KEY_HOSTIP='VMWARE_HOST='
+
+KEY_NAME_VALUE=`vmtoolsd --cmd='info-get guestinfo.uuid' &2>/dev/null` || true
+KEY_HOSTIP_VALUE=`vmtoolsd --cmd='info-get guestinfo.hypervisor.hostIP' &2>/dev/null` || true
+KEY_KERN_PARAM_VALUE=`vmtoolsd --cmd='info-get guestinfo.master' &2>/dev/null` || true
+
+if [ "$KEY_NAME_VALUE" != "" ]
+then
+    echo "Writing VPX guest machine's uuid to " $VM_NAME_FILE
+    echo $KEY_NAME_VALUE > $VM_NAME_FILE
+fi
+
+if [ "$KEY_HOSTIP_VALUE" != "" ]
+then
+    echo "Writing ESXi host's IP address to " $HOSTIP_FILE
+    echo $KEY_HOSTIP$KEY_HOSTIP_VALUE > $HOSTIP_FILE
+fi
+
+if [ "$KEY_KERN_PARAM_VALUE" != "" ]
+then
+    echo "Writing kernel command line parameters to " $ESX_CMDLINE_FILE
+    esx_kernel_cmd_line_content=$esx_kernel_cmd_line_content" ""$KEY_KERN_PARAM_VALUE"
+fi
+
+echo $esx_kernel_cmd_line_content > $ESX_CMDLINE_FILE

@@ -1,0 +1,9 @@
+#!/bin/sh
+
+. /etc/openstack/keystone
+
+OPTIONS="--url http://$KEYSTONE_HOST:5000/
+         --version 1.1
+"
+
+/usr/bin/nova $OPTIONS "$@"

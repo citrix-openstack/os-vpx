@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -eu
+
+. /etc/openstack/cert
+
+if [ -f /etc/openstack/cert.crt ] &&
+   [ -f /etc/openstack/cert.key ]
+then
+  echo "Certificates already present; nothing to do."
+  exit 0
+fi
+
+if [ "$HOSTNAME" = "" ] ||
+   [ "$HOSTNAME" = "localhost" ] ||
+   [ "$HOSTNAME" = "localhost6" ]
+then
+  echo "No sensible hostname; refusing to generate host certificate."
+  exit 1
+fi
+
+cd /etc/openstack
+openssl req -new -x509 -nodes -out cert.crt -keyout cert.key -days 3650 \
+            -subj "/C=$CRED_CERT_C/ST=$CRED_CERT_ST/L=$CRED_CERT_L/O=$CRED_CERT_O/OU=$CRED_CERT_OU/CN=$HOSTNAME"
+
+chmod u=r,go= cert.key
+chmod a=r cert.crt
+
+ln -s /etc/openstack/cert.crt /etc/swift/cert.crt
+ln -s /etc/openstack/cert.key /etc/swift/cert.key
+
+# If we ever need something other than swift to use this key, then we're going
+# to have to make this a bit more complicated.
+chgrp swift /etc/openstack/cert.key
+chmod g+r /etc/openstack/cert.key

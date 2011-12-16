@@ -1,0 +1,4 @@
+AUTH_OPTIONS="--auth_host=$KEYSTONE_HOST \
+              --auth_uri=http://$KEYSTONE_HOST:5000/
+              --admin_token=$KEYSTONE_SUPERUSER_TOKEN
+"

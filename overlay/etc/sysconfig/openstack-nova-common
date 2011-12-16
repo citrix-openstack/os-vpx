@@ -1,0 +1,8 @@
+. /etc/openstack/host
+
+NOVA_COMMON_OPTIONS="--lock_path=/var/run/nova
+         --state_path=/var/lib/nova
+         --verbose=1
+         --use_syslog=true
+         --host=$HOST_GUID
+"

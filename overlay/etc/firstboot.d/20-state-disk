@@ -1,0 +1,62 @@
+#!/bin/sh
+
+set -eu
+
+move_tree()
+{
+  local dest="/state$1"
+  mkdir -p $(dirname "$dest")
+  if [ -d "$dest" ]
+  then
+    if [ -h "$1" ]
+    then
+      echo "$dest exists and $1 is a symlink -- no need to move $1."
+    else
+      files=$(find "$1" -type f)
+      if [ -z "$files" ]
+      then
+        echo "$1 is an empty directory -- deleting and relinking..."
+        # Forcing removal of the directory is safe here
+        rm -rf "$1"
+      else
+        d=$(date +%Y%m%d%H%M%S)
+        echo "$dest exists but $1 is not a symlink -- moving $1 to $1.$d and relinking..."
+        rm -f "$1.$d"
+        mv "$1" "$1.$d"
+      fi
+      ln -s "$dest" "$1"
+      echo "$1 relinked to $dest."
+    fi
+  else
+    echo "Moving $1 to $dest..."
+    cp -a "$1" "$dest"
+    rm -rf "$1"
+    ln -s "$dest" "$1"
+    echo "Moved $1 to $dest."
+  fi
+}
+
+# Determine whether the state disk exists, and use it if so
+set +e # Avoid exiting if device not found
+state_device=$(blkid -t LABEL=vpxstate -l -o device)
+set -e
+if [ -z "$state_device" ] ; then
+  echo "State disk not found"
+else
+  echo "State disk found on device $state_device.  Appending mount to /etc/fstab"
+  cat >> /etc/fstab <<EOF
+# /state added by $(readlink -f "$0") $(date)
+LABEL=vpxstate /state ext3 defaults 1 2
+EOF
+  if mount /state ; then
+    echo "State disk mounted successfully.  Moving trees."
+    move_tree "/etc/openstack"
+    move_tree "/var/lib/dhcpd"
+    move_tree "/var/lib/mysql"
+    move_tree "/var/lib/geppetto"
+    move_tree "/var/lib/puppet"
+    move_tree "/var/lib/swift"
+    move_tree "/var/named"
+    move_tree "/var/log"; service rsyslog restart 
+  fi
+fi

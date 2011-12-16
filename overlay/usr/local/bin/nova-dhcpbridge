@@ -1,0 +1,9 @@
+#!/bin/sh
+
+. /etc/openstack/mysql
+
+OPTIONS="--sql_connection=mysql://$MYSQL_USER:$MYSQL_PASS@$MYSQL_HOST/nova
+         --flagfile=/etc/nova/nova-dhcpbridge.conf
+"
+
+/usr/bin/nova-dhcpbridge $OPTIONS "$@"

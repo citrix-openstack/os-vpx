@@ -1,0 +1,31 @@
+#!/bin/sh
+
+set -eu
+
+. /etc/openstack/networking
+. /usr/share/os-vpx/networking.sh
+
+mkdir -p /state/.ssh
+
+rm -f /root/.screenrc
+ln -s /state/.screenrc /root/
+
+rm -f /root/.ssh
+ln -s /state/.ssh /root/
+
+ip=$(get_ip_address "$PRIVATE_NIC")
+
+echo
+echo "This login is: $USER@$ip"
+echo
+echo "Some useful commands:"
+echo
+if [ ! -f ~/.ssh/authorized_keys ]
+then
+  echo "scp ~/.ssh/authorized_keys $USER@$ip:.ssh"
+  echo
+fi
+if [ ! -f ~/.ssh/.screenrc ]
+then
+  echo "scp ~/.screenrc $USER@$ip:"
+fi

@@ -1,0 +1,4 @@
+. /etc/openstack/mysql
+
+OPTIONS="--sql_connection=mysql://$MYSQL_USER:$MYSQL_PASS@$MYSQL_HOST/nova
+"

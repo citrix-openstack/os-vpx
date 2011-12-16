@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -eu
+
+. /etc/openstack/cert
+
+cd /var/lib/nova/CA
+
+sed -i \
+    -e "s,^default_days.*,default_days = 3650," \
+    -e "s,^countryName_default.*,countryName_default = $CRED_CERT_C," \
+    -e "s,^stateOrProvinceName_default.*,stateOrProvinceName_default = $CRED_CERT_ST," \
+    -e "s,^localityName_default.*,localityName_default = $CRED_CERT_L," \
+    openssl.cnf.tmpl
+
+sed -i \
+    -e "s,^export SUBJ=.*,export SUBJ='/C=$CRED_CERT_C/ST=$CRED_CERT_ST/L=$CRED_CERT_L/O=$CRED_CERT_O/OU=$CRED_CERT_OU/CN=customer-intCA-\$1'," \
+    geninter.sh
+
+sh genrootca.sh

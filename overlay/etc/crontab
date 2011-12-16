@@ -1,0 +1,15 @@
+SHELL=/bin/bash
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=root
+HOME=/
+
+# run-parts
+17 * * * * root run-parts /etc/cron.hourly
+25 4 * * * root run-parts /etc/cron.daily
+47 4 * * 7 root run-parts /etc/cron.weekly
+52 4 1 * * root run-parts /etc/cron.monthly
+
+# ensure the sanity of the puppet agent running in managed mode
+*/3 * * * * root /usr/local/bin/puppet/agent --check-daemon
+# Post node facts to Master
+*/1 * * * * root /usr/local/bin/puppet/facter

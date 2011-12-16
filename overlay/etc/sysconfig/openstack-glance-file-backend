@@ -1,0 +1,3 @@
+STORE_OPTIONS="--default_store=file
+               --filesystem_store_datadir=/var/lib/glance/images
+"

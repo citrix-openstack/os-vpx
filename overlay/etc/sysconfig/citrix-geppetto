@@ -1,0 +1,8 @@
+. /etc/openstack/networking
+. /usr/share/os-vpx/networking.sh
+
+INTF=0.0.0.0
+PORT=8080
+
+OPTIONS="$INTF $PORT"
+

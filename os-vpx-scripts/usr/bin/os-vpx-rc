@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -eu
+
+. /etc/openstack/compute-api
+
+if [ $# -lt 2 ]
+then
+  fname=$(basename "$0")
+  cat <<EOF
+Usage: $fname <username> <password> [<output file>]
+EOF
+  exit 1
+fi
+
+user="$1"
+pass="$2"
+out="${3-novarc}"
+
+cat >"$out" <<EOF
+export EC2_URL="http://$COMPUTE_API_HOST:8773/services/Cloud"
+export EC2_ACCESS_KEY="$user"
+export EC2_SECRET_KEY="$pass"
+EOF

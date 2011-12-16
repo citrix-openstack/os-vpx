@@ -1,0 +1,34 @@
+. /etc/openstack/glance
+. /etc/openstack/guest-network
+. /etc/openstack/hapi
+. /etc/openstack/mysql
+. /etc/openstack/rabbitmq
+. /etc/openstack/volume
+
+HAPI_DRIVER=$(/usr/local/bin/geppetto/os-vpx/host-details-get virt-type)
+
+if [ -z "$COMPUTE_VLAN_INTERFACE" ]
+then
+    COMPUTE_VLAN_INTERFACE=$(/usr/local/bin/geppetto/os-vpx/host-details-get default-vlan-if)
+fi 
+
+OPTIONS="--rabbit_host=$RABBIT_HOST
+         --rabbit_port=$RABBIT_PORT
+         --rabbit_userid=$RABBIT_USER
+         --rabbit_password=$RABBIT_PASS
+         --connection_type=$HAPI_DRIVER
+         --glance_api_servers=$GLANCE_HOSTNAME:$API_BIND_PORT
+         --sql_connection=mysql://$MYSQL_USER:$MYSQL_PASS@$MYSQL_HOST/nova
+         --network_manager=$NETWORK_MANAGER
+         --flat_injected=true
+         --iscsi_ip_prefix=$ISCSI_IP_PREFIX
+         --volume_driver=$VOLUME_DRIVER
+         --use_local_volumes=$USE_LOCAL_VOLUMES
+         --firewall_driver=$FIREWALL_DRIVER
+         --vlan_interface=$COMPUTE_VLAN_INTERFACE
+         --use_cow_images=true
+"
+
+. /etc/sysconfig/openstack-nova-compute-$HAPI_DRIVER-virt
+
+OPTIONS="${OPTIONS} $VIRT_OPTIONS"

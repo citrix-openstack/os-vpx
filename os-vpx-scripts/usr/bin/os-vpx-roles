@@ -1,0 +1,27 @@
+#!/usr/bin/python26
+
+import sys
+
+from os_vpx import get_all_nodes
+from os_vpx import roles
+
+
+if '-h' in sys.argv:
+    print '''Usage: %s [-h] [-a] [-f] [pattern]*
+
+    -h       Print this message
+    -a       Show all roles, not just the services
+    -f       Show full role names, not the tidied, shortened ones
+    -s       Scriptable mode: no headers, no pretty printing
+    pattern  Show only roles matching the given patterns
+'''
+    sys.exit(0)
+
+
+all_roles = '-a' in sys.argv
+full_names = '-f' in sys.argv
+scriptable = '-s' in sys.argv
+patterns = [x for x in sys.argv[1:] if x[0] != '-']
+
+nodes = get_all_nodes.get_nodes()
+roles.print_roles_table(nodes, patterns, all_roles, full_names, scriptable)

@@ -1,0 +1,6 @@
+#!/bin/sh
+
+OPTIONS="-c /etc/keystone/keystone.conf
+"
+
+/usr/bin/keystone-manage $OPTIONS "$@"

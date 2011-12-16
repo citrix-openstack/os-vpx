@@ -1,0 +1,22 @@
+#!/bin/sh
+
+set -eu
+
+if [ $# -lt 1 ]
+then
+  fname=$(basename "$0")
+  cat <<EOF
+Usage: $fname <tenant name>
+EOF
+  exit 1
+fi
+
+tenant="$1"
+
+services=$(keystone-manage service list | tail -n +3 | cut -f 1)
+
+keystone-manage tenant add "$tenant"
+for service in $services
+do
+  keystone-manage endpoint add "$tenant" "$service"
+done

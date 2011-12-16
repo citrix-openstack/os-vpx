@@ -1,0 +1,5 @@
+#!/usr/bin/env python2.6
+
+from os_vpx import get_all_nodes
+
+print get_all_nodes.get_node_names()

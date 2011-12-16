@@ -1,0 +1,13 @@
+. /etc/openstack/keystone
+. /etc/openstack/glance
+. /etc/openstack/glance-store
+
+OPTIONS="--bind_host=$API_BIND_HOST \
+         --bind_port=$API_BIND_PORT \
+         --registry_host=$REGISTRY_BIND_HOST \
+         --registry_port=$REGISTRY_BIND_PORT
+"
+. /etc/sysconfig/openstack-glance-$GLANCE_STORE-backend
+. /etc/sysconfig/openstack-glance-auth
+
+OPTIONS="${OPTIONS} ${STORE_OPTIONS} ${AUTH_OPTIONS}"

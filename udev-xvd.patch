@@ -1,0 +1,12 @@
+--- ./etc/udev/rules.d/50-udev.rules	2011-01-07 21:09:25.000000000 +0000
++++ ./etc/udev/rules.d/50-udev.rules	2011-01-07 21:09:18.000000000 +0000
+@@ -10,6 +10,9 @@
+ SUBSYSTEM=="block",             GROUP="disk", MODE="0640"
+ KERNEL=="root",                 GROUP="disk", MODE="0640"
+ 
++KERNEL=="xvdb",                 NAME="%k", SYMLINK+="cdrom cdrom0"
++KERNEL=="xvd[c-p]",             GROUP="nova", MODE="0660"
++
+ # console devices
+ KERNEL=="tty",                  NAME="%k", GROUP="tty", MODE="0666", OPTIONS="last_rule"
+ KERNEL=="console",              NAME="%k", MODE="0600", OPTIONS="last_rule"

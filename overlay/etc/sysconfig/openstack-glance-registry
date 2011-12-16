@@ -1,0 +1,12 @@
+. /etc/openstack/keystone
+. /etc/openstack/glance
+. /etc/openstack/mysql
+
+OPTIONS="--bind_host=$REGISTRY_BIND_HOST \
+         --bind_port=$REGISTRY_BIND_PORT \
+         --sql_connection=mysql://$MYSQL_USER:$MYSQL_PASS@$MYSQL_HOST/glance
+"
+
+. /etc/sysconfig/openstack-glance-auth
+
+OPTIONS="${OPTIONS} ${AUTH_OPTIONS}"

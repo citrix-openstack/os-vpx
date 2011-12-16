@@ -1,0 +1,8 @@
+. /etc/openstack/netscaler
+
+OPTIONS="--host=$NS_VPX_HOST
+         --port=$NS_VPX_PORT
+         --user=$NS_VPX_USER
+         --password=$NS_VPX_PASS
+         --ips=$NS_VPX_VIPS
+"

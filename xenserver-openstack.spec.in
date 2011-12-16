@@ -1,0 +1,56 @@
+Summary: XenServer-OpenStack integration
+Name: xenserver-openstack
+Version: @PRODUCT_VERSION@
+Release: @BUILD_NUMBER@
+License: Apache
+Vendor: Citrix Systems, Inc.
+Group: XenServer/OpenStack
+BuildRoot: %{_tmppath}/%{name}
+BuildArch: noarch
+Requires: python-netaddr, python-simplejson
+
+%description
+
+%prep
+rm -rf %{buildroot}/etc/rc.d
+exit 0
+
+%build
+rm %{buildroot}/etc/init.d/host-rules
+rm %{buildroot}/etc/xensource/scripts/vif_5.6-fp1.patch
+rm %{buildroot}/etc/xensource/scripts/vif_rules.py
+rm %{buildroot}/etc/udev/rules.d/xen-openvswitch-nova.rules
+
+mkdir %{buildroot}/etc/rc.d
+mv %{buildroot}/etc/init.d %{buildroot}/etc/rc.d/
+
+%install
+exit 0
+
+%clean
+exit 0
+
+%posttrans
+chkconfig openvswitch-nova on
+cd /etc/xensource/scripts; patch -f -s <vif-6.0.patch vif
+
+%preun
+chkconfig openvswitch-nova off
+cd /etc/xensource/scripts; patch -R -f -s <vif-6.0.patch vif
+
+%files
+%defattr(-,root,root,-)
+%attr(0755, root, root) %{_initrddir}/openvswitch-nova
+/etc/sysconfig/openvswitch-nova
+/etc/xapi.d/plugins/agent
+/etc/xapi.d/plugins/glance
+/etc/xapi.d/plugins/migration
+/etc/xapi.d/plugins/objectstore
+/etc/xapi.d/plugins/pluginlib_nova.py
+/etc/xapi.d/plugins/xenhost
+/etc/xapi.d/plugins/xenstore.py
+%attr(0755, root, root) /etc/xensource/scripts/apply-vif-rules
+/etc/xensource/scripts/novalib.py
+/etc/xensource/scripts/ovs_configure_base_flows.py
+/etc/xensource/scripts/ovs_configure_vif_flows.py
+/etc/xensource/scripts/vif-6.0.patch

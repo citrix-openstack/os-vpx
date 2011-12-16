@@ -1,0 +1,48 @@
+#!/bin/sh
+
+set -eu
+
+if [ $# -lt 4 ] || [ $# -gt 5 ]
+then
+  fname=$(basename "$0")
+  cat <<EOF
+Usage: $fname <tenant> <username> <password> <roles> [<token>]
+
+<roles> is something like:
+         "Admin,1 KeystoneAdmin,1 KeystoneServiceAdmin,1 Admin,0 Member,0 netadmin,0 projectmanager,0 sysadmin,0"
+         "Admin,0 Member,0 netadmin,0 projectmanager,0 sysadmin,0"
+         "Member,0"
+<token> will be generated if unspecified.
+EOF
+  exit 1
+fi
+
+tenant="$1"
+user="$2"
+pass="$3"
+roles="$4"
+token="${5-}"
+
+if [ ! "$token" ]
+then
+  token=$(uuidgen)
+fi
+
+expiration="2015-02-05T00:00"
+
+keystone-manage user add "$user" "$pass" "$tenant"
+keystone-manage token add "$token" "$user" "$tenant" "$expiration"
+keystone-manage credentials add "$user" EC2 "$user" "$pass" "$tenant"
+
+for role in $roles
+do
+  r=${role/,*/}
+  g=${role/*,}
+  if [ "$g" = '0' ]
+  then
+    t="$tenant"
+  else
+    t=""
+  fi
+  keystone-manage role grant "$r" "$user" $t
+done

@@ -1,0 +1,112 @@
+#!/bin/sh
+
+set -eu
+
+action="$1"
+domid="$2"
+devid="$3"
+
+
+xe_min()
+{
+  local cmd="$1"
+  shift
+  xe "$cmd" --minimal "$@"
+}
+
+
+get_vm_uuid()
+{
+  local domid="$1"
+  local vm_path=$(xenstore-read "/local/domain/$domid/vm" || true)
+  if [ "$vm_path" ]
+  then
+    xenstore-read "$vm_path/uuid" || true
+  fi
+}
+
+
+get_bridge()
+{
+  local vif="$1"
+  local bridge=$(ovs-vsctl iface-to-br "$vif")
+  # Recurse up to find the datapath bridge -- the parent of any child (VLAN)
+  # bridges.
+  while true
+  do
+    local new_bridge=$(ovs-vsctl br-to-parent "$bridge")
+    if [ "$new_bridge" = "$bridge" ]
+    then
+      echo "$bridge"
+      return 0
+    else
+      bridge="$new_bridge"
+    fi
+  done
+}
+
+
+get_ofport()
+{
+  local vif="$1"
+  local ofport=$(ovs-vsctl get Interface "$vif" ofport)
+  if [ $(($ofport < 0)) = 1 ] || [ $(($ofport >= 65534)) = 1 ]
+  then
+    $log "Invalid ofport $ofport for VIF $vif."
+    exit 1
+  fi
+  echo $ofport
+}
+
+
+log="logger -s -t $(basename $0) --"
+
+vm_uuid=$(get_vm_uuid "$domid")
+is_vpx=
+if [ "$vm_uuid" ]
+then
+  is_vpx=$(xe_min vm-list uuid="$vm_uuid" other-config:os-vpx=true)
+fi
+
+if [ "$is_vpx" ]
+then
+  vif="vif$domid.$devid"
+  bridge=$(get_bridge "$vif")
+
+  case "$action" in
+    "online")
+      $log "Applying permissive VIF rules for $vif..."
+
+      ofport=$(get_ofport "$vif")
+      ovs-ofctl del-flows "$bridge" "in_port=$ofport"
+      ovs-ofctl add-flow "$bridge" \
+        "priority=100,in_port=$ofport,actions=normal"
+
+      $log "Applied permissive VIF rules for $vif."
+      ;;
+
+    "offline")
+      $log "Deleting permissive VIF rules for $vif..."
+
+      ofport=$(get_ofport $vif)
+      ovs-ofctl del-flows "$bridge" "in_port=$ofport"
+
+      $log "Deleted permissive VIF rules for $vif."
+      ;;
+
+    "add"|"remove"|"move")
+      ;;
+
+    *)
+      $log "Warning: unknown command in $0 $*"
+      exit 1
+      ;;
+    esac
+else
+  $log "Applying VIF rules: $action vif-$domid-$devid all..."
+
+  /etc/xensource/scripts/ovs_configure_vif_flows.py "$action" \
+      "vif-$domid-$devid" "all"
+
+  $log "Applying VIF rules for vif-$domid-$devid done."
+fi

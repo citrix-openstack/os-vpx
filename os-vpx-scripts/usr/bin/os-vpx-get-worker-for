@@ -1,0 +1,26 @@
+#!/usr/bin/python26
+
+#Usage: os-vpx-get-worker-for <role>
+
+import sys
+import xmlrpclib
+
+from geppetto.geppettolib import puppet
+
+if not sys.argv[1]:
+    print 'Usage: os-vpx-get-worker-for <role>'
+    sys.exit(1)
+
+p = puppet.PuppetNode()
+master_fqdn = p.get_puppet_option('server')
+master_url = 'http://%s:8080/openstack/geppetto/v1' % master_fqdn
+
+proxy = xmlrpclib.ServerProxy(master_url)
+
+nodes = proxy.Node.get_details(proxy.Node.get_all())
+
+for fqdn, details in nodes.iteritems():
+    for role in details['roles']:
+	if sys.argv[1] in role['name']:
+            print fqdn
+	    break

@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -eu
+
+start()
+{
+  /opt/xensource/packages/files/os-vpx/uninstall-os-vpx.sh
+  /opt/xensource/packages/files/os-vpx/autoinstall-os-vpx.sh
+}
+
+case $1 in
+  start) start ;;
+esac

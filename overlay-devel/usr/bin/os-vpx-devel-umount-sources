@@ -1,0 +1,44 @@
+#!/bin/sh
+
+set -eu
+
+DEST_ROOT="/usr/lib/python2.6/site-packages"
+MP_ROOT="/media/devel"
+
+. /usr/share/os-vpx/attach-data-disk.sh
+. /etc/openstack/devel
+
+project="$1"
+
+dest="$DEST_ROOT/$project"
+mp="$MP_ROOT/$project"
+
+# restore retained files before unmounting
+if [[ "$(eval echo \${"RETAIN_LIST_"$project})" ]]
+then
+  for item in $(eval "echo \${$(echo "RETAIN_LIST_"$project)[@]}")
+  do
+    olditem=$(ls -d $dest/$item.* | head -1)
+    [ -e "$olditem" ] && rm $dest/$item
+    [ -e "$olditem" ] && mv $olditem $dest/$item
+  done
+fi
+
+umount "$mp" || true
+del_fstab_entry "$mp"
+
+if [ -d "$dest" ]
+then
+  echo "$dest is already a subdirectory -- leaving it alone."
+else
+  oldsrc=$(ls -d "$dest."* | head -1)
+  if [ "$oldsrc" = "" ]
+  then
+    echo "No old sources.  Project $project will be broken!"
+  else
+    rm -f "$dest"
+    echo -n "Putting old sources at $oldsrc back to $dest... "
+    mv "$oldsrc" "$dest"
+    echo "done."
+  fi
+fi

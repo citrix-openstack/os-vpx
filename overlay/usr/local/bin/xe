@@ -1,0 +1,8 @@
+#!/bin/sh
+
+. /etc/openstack/hapi
+. /etc/openstack/xapi-url
+
+ip=$(echo "${XAPI_URL/http:\/\//}")
+
+XE_STUNNEL=/dev/null /usr/bin/xe --nossl -s "$ip" -pw "$HAPI_PASS" "$@"

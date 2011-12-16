@@ -1,0 +1,255 @@
+#!/bin/bash
+
+set -eu
+
+
+usage_ssh()
+{
+  cat >&2 <<EOF
+Usage: ssh-thru [-p <password>] [-k <keyfile>] [<arg>]+ <host> [<VM>]  \
+                [<rest>]+
+
+  Both <host> and <VM> may be hostname or username@hostname.  Username
+  defaults to root in both cases.
+
+  <VM> defaults to 169.254.0.2 if not specified.
+
+  <password> defaults to 'citrix'.
+
+  <keyfile> defaults to \$HOME/.ssh/id_rsa.
+
+  <arg> will be passed unchanged to ssh.
+
+  <rest> will be passed unchanged to ssh, so can be other ssh args or a
+  command to execute.
+EOF
+  exit 1
+}
+
+
+usage_scp()
+{
+  cat >&2 <<EOF
+Usage:
+       scp-thru [-p <password>] [-k <keyfile>] [<arg>]+ <host>
+                        followed by
+                   <VM>:<src_file> <dest>
+                            or
+                   <src_file>+ <VM>:<dest>
+
+  Both <host> and <VM> may be hostname or username@hostname.  Username
+  defaults to root in both cases.
+
+  <password> defaults to 'citrix'.
+
+  <keyfile> defaults to \$HOME/.ssh/id_rsa.
+
+  <arg> will be passed unchanged to scp.
+
+  <dest> may be a directory or a file.
+EOF
+  exit 1
+}
+
+
+usage()
+{
+  if expr "$0" : .*scp >/dev/null
+  then
+    usage_scp
+  else
+    usage_ssh
+  fi
+}
+
+
+keyfile=
+password=citrix
+other_args=()
+eval set -- `getopt -o ":k:p:r" -- "$@"`
+while true
+do
+  case "$1" in
+    -k)
+      keyfile="$2"
+      shift 2
+      ;;
+    -p)
+      password="$2"
+      shift 2
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      other_args+=($1)
+      shift
+      ;;
+    *)
+      usage
+      ;;
+  esac
+done
+other_args+=('--')
+
+if [ $# -lt 1 ]
+then
+  usage
+fi
+
+host="$1"
+shift
+
+if ! expr "$host" : '.*@' >/dev/null
+then
+  host="root@$host"
+fi
+
+if expr "$0" : .*scp >/dev/null
+then
+  if [ $# -lt 2 ]
+  then
+    usage
+  fi
+
+  if expr "$1" : '.*:' >/dev/null
+  then
+    vm="${1/:*/}"
+    srcs=("localhost:${1/*:/}")
+    dest="$2"
+    shift 2
+  else
+    srcs=()
+    while [ $# -ge 2 ]
+    do
+      srcs+=("$1")
+      shift
+    done
+    vm="${1/:*/}"
+    dest="localhost:${1/*:/}"
+    shift
+  fi
+else
+  if [ "${1-}" ]
+  then
+    vm="$1"
+    shift
+  else
+    vm="169.254.0.2"
+  fi
+fi
+
+if expr "$vm" : '.*@' >/dev/null
+then
+  vmuser="${vm/@*/}"
+  vm="${vm/*@/}"
+else
+  vmuser="root"
+fi
+
+
+if [ -n "$keyfile" -a ! -f "$keyfile" ]
+then
+  echo "Keyfile $keyfile does not exist." >&2
+  exit 1
+fi
+
+if [ -z "$keyfile" -a -f "$HOME/.ssh/id_dsa" ]
+then
+  keyfile="$HOME/.ssh/id_dsa"
+fi
+
+if [ -z "$keyfile" -a -f "$HOME/.ssh/id_rsa" ]
+then
+  keyfile="$HOME/.ssh/id_rsa"
+fi
+
+
+if ! which expect >/dev/null
+then
+  echo "I need expect.  Please install it." >&2
+  exit 1
+fi
+
+
+no_hosts_args="-o StrictHostKeyChecking=no \
+               -o UserKnownHostsFile=/dev/null \
+               -o LogLevel=ERROR"
+
+
+upload_key_to_host()
+{
+    local userhost="$1"
+    local keyfile="$2"
+    key=$(cat "$keyfile.pub")
+    ssh $userhost \
+        "mkdir -p ~/.ssh; if ! grep -q '$key' .ssh/authorized_keys 2>/dev/null; then echo '$key' >>~/.ssh/authorized_keys; fi" || true
+}
+
+
+upload_key_to_vpx()
+{
+    local user="$1"
+    local host="$2"
+    local password="$3"
+    local keyfile="$4"
+    local local_tunnel_port="$5"
+    key=$(cat "$keyfile.pub")
+    expect >/dev/null <<EOF -
+set timeout -1
+spawn ssh $no_hosts_args $user@$host -p $local_tunnel_port \
+          mkdir -p ~/.ssh\; if ! grep -q '$key' .ssh/authorized_keys 2>/dev/null \; then echo '$key' >>~/.ssh/authorized_keys \; fi
+match_max 100000
+expect {
+    "*?assword:*" {
+    send -- "$password\r"
+    send -- "\r"
+    expect eof
+    }
+    eof {
+    }
+EOF
+}
+
+
+if [ -n "$password" -a -f "$keyfile" ]
+then
+  upload_key_to_host "$host" "$keyfile"
+fi
+
+port=$(( $RANDOM % 64511 + 1024 ))
+
+ssh -n -N -L "$port:$vm:22" "$host" &
+tunnel=$!
+cleanup()
+{
+  kill $tunnel || true
+}
+trap cleanup EXIT
+
+sleep 1 # Give the tunnel time to come up
+
+echo "Going to $vm..."
+
+if [ -n "$password" -a -f "$keyfile" ]
+then
+  upload_key_to_vpx "$vmuser" localhost "$password" "$keyfile" "$port"
+fi
+
+if [ -f "$keyfile" ]
+then
+  keyfile_arg="-i $keyfile"
+else
+  keyfile_arg=
+fi
+
+if expr "$0" : .*scp >/dev/null
+then
+  scp -P "$port" $no_hosts_args $keyfile_arg -o "User=$vmuser" \
+      "${other_args[@]}" \
+      "${srcs[@]}" "$dest"
+else
+  ssh "localhost" -p "$port" $no_hosts_args $keyfile_arg \
+      -o "User=$vmuser" "${other_args[@]}" "$@"
+fi

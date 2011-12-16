@@ -1,0 +1,9 @@
+#!/bin/sh
+
+. /etc/openstack/glance
+
+OPTIONS="--host=$GLANCE_HOSTNAME
+         --port=$API_BIND_PORT
+"
+
+/usr/bin/glance $OPTIONS "$@"

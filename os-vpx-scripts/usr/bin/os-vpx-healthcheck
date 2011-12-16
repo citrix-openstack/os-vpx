@@ -1,0 +1,381 @@
+#!/bin/sh
+
+set -eu
+
+RESOLV="/etc/resolv.conf"
+VPX_ROLE="/var/lib/geppetto/vpx_role"
+GLANCE_CFG="/etc/openstack/glance"
+MYSQL_CFG="/etc/openstack/mysql"
+RABBIT_CFG="/etc/openstack/rabbitmq"
+VOLUME_CFG="/etc/openstack/volume"
+HAPI_CFG="/etc/openstack/hapi"
+
+WARNING="\033[1;33mWARNING\033[0m"
+ERROR="\033[1;31mERROR\033[0m"
+
+
+I=$(hostname)
+remote_addresses=
+exit_code=
+
+
+get_ip_address()
+{
+  local dev="$1"
+  local family="$2"
+
+  ip -o -f "$family" addr show dev "$dev" | \
+    sed -e "s,^.*$family \(.*\)/.*\$,\1,g"
+}
+
+
+get_link_status()
+{
+  local dev="$1"
+
+  if ip link show dev "$dev" >/dev/null 2>&1
+  then
+    if ip -o link show dev "$dev" | grep -q UP
+    then
+      echo "up"
+    else
+      echo "down"
+    fi
+  else
+    echo "missing"
+  fi
+}
+
+
+show_link_status()
+{
+  local dev="$1"
+  local status="$2"
+  local down_is_bad="$3"
+
+  if [ "$status" = 'missing' ] && $down_is_bad
+  then
+    flag="$ERROR: "
+    exit_code=1
+  elif [ "$status" != "up" ] && $down_is_bad
+  then
+    flag="$WARNING: "
+    exit_code=2
+  else
+    flag=''
+  fi
+  echo -e "$I: $flag$dev is $status."
+}
+
+
+check_network_config()
+{
+  local eth0_link=$(get_link_status "eth0")
+  local eth1_link=$(get_link_status "eth1")
+  local eth2_link=$(get_link_status "eth2")
+
+  show_link_status "eth0" "$eth0_link" true
+  show_link_status "eth1" "$eth1_link" true
+  show_link_status "eth2" "$eth2_link" false
+
+  if [ "$eth0_link" = "up" ]
+  then
+    local eth0_addr=$(get_ip_address "eth0" "inet")
+    echo "$I: eth0:      $eth0_addr"
+  fi
+  if [ "$eth1_link" = "up" ]
+  then
+    local eth1_addr4=$(get_ip_address "eth1" "inet")
+    local eth1_addr6=$(get_ip_address "eth2" "inet6")
+    I="$eth1_addr4, $I"
+    echo "$I: eth1 IPv4: $eth1_addr4"
+    echo "$I: eth1 IPv6: $eth1_addr6"
+  fi
+  if [ "$eth2_link" = "up" ]
+  then
+    local eth2_addr4=$(get_ip_address "eth2" "inet")
+    local eth2_addr6=$(get_ip_address "eth2" "inet6")
+    echo "$I: eth2 IPv4: $eth2_addr4"
+    echo "$I: eth2 IPv6: $eth2_addr6"
+  fi
+}
+
+
+check_fqdn()
+{
+  local fqdn=$(hostname -f 2>/dev/null)
+  if [ "$fqdn" = '' ] || expr "$fqdn" : 'localhost' >/dev/null
+  then
+    echo -e "$I: $ERROR: FQDN: $fqdn"
+    exit_code=1
+  else
+    echo "$I: FQDN: $fqdn"
+  fi
+}
+
+
+check_dns()
+{
+  local nss=$(sed -ne 's,^nameserver \(.*\)$,\1,p' "$RESOLV")
+
+  for ns in $nss
+  do
+    if ping_check_ "$ns"
+    then
+      echo "$I: DNS server $ns is reachable."
+    else
+      echo -e "$I: $ERROR: DNS server $ns is not reachable."
+      exit_code=1
+    fi
+  done
+}
+
+
+check_master_slave()
+{
+  if [ -f "$VPX_ROLE" ]
+  then
+    master=$(cat "$VPX_ROLE")
+    if [ "$master" = "0" ]
+    then
+      echo "$I: master; $VPX_ROLE says so."
+    elif [ "$master" = "1" ]
+    then
+      echo "$I: slave; $VPX_ROLE says so."
+    else
+      echo -e "$I: $WARNING: neither master nor slave; $VPX_ROLE unconfigured."
+      exit_code=2
+    fi
+  else
+    echo -e "$I: $WARNING: neither master nor slave; $VPX_ROLE does not exist."
+    exit_code=2
+  fi
+}
+
+
+check_xapi()
+{
+  if check_xapi_pass
+  then
+    if get_vm_name
+    then
+      get_host_version_info
+      check_xapi_health
+    fi
+  fi
+}
+
+
+check_xapi_pass()
+{
+  xapi_pass=$(get_value "$HAPI_CFG" "HAPI_PASS")
+  if [ "$xapi_pass" = "" ]
+  then
+    echo -e "$I: $ERROR: No xapi password configured."
+    exit_code=1
+    return 1
+  else
+    echo "$I: xapi password is configured."
+    return 0
+  fi
+}
+
+
+get_vm_name()
+{
+  set +e
+  name=$(os-vpx-get-vm-name 2>&1)
+  result=$?
+  set -e
+  if [ $result = 2 ]
+  then
+    echo -e "$I: $ERROR: connection refused speaking to xapi."
+    exit_code=1
+    return 1
+  elif [ $result = 3 ]
+  then
+    echo -e "$I: $ERROR: authentication failed speaking to xapi."
+    exit_code=1
+    return 1
+  elif [ $result = 4 ]
+  then
+    echo -e "$I: $ERROR: xapi password is not configured."
+    exit_code=1
+    return 1
+  elif [ $result != 0 ]
+  then
+    echo -e "$I: $ERROR: failed to get VM name: $name"
+    exit_code=1
+    return 1
+  else
+    echo "$I: This VM is $name."
+  fi
+
+  hostname=$(hostname)
+  if expr "$name" : ".*$hostname" >/dev/null
+  then
+    echo "$I: VM name corresponds with hostname."
+  else
+    echo -e "$I: $WARNING: VM name does not correspond with hostname."
+    exit_code=2
+  fi
+}
+
+
+get_host_version_info()
+{
+  echo "$I: Host version info follows:"
+  os-vpx-dump-host-version-info || true
+  echo "$I: Host version info ends."
+}
+
+
+check_xapi_health()
+{
+  echo
+  echo "$I: Running os-vpx-check-xapi; this may take a little while..."
+  set +e
+  msg=$(os-vpx-check-xapi 2>&1)
+  result=$?
+  set -e
+  if [ $result = 0 ] 
+  then
+    echo "$I: os-vpx-check-xapi OK."
+  else
+    echo -e "$I: $ERROR: os-vpx-check-xapi failed: ${msg/Error: /}"
+    exit_code=1
+  fi
+}
+
+
+get_value()
+{
+  local fname="$1"
+  local key="$2"
+
+  ( . "$fname"
+    eval "echo \"\$$key\"" )
+}
+
+
+gather_addresses()
+{
+  local g=$(get_value "$GLANCE_CFG" "GLANCE_HOSTNAME")
+  local m=$(get_value "$MYSQL_CFG" "MYSQL_HOST")
+  local r=$(get_value "$RABBIT_CFG" "RABBIT_HOST")
+  local v=$(get_value "$VOLUME_CFG" "TARGET_HOST")
+  echo "$I: Glance:      $g."
+  echo "$I: MySQL:       $m."
+  echo "$I: RabbitMQ:    $r."
+  echo "$I: nova-volume: $v."
+  remote_addresses="$remote_addresses $g $m $r $v"
+}
+
+
+ping_addresses()
+{
+  local addrs=$((echo "$remote_addresses" | xargs -d' ' -ixx echo xx) | sort | uniq)
+  for addr in $addrs
+  do
+    ping_check "$addr"
+  done
+}
+
+
+ping_check_()
+{
+  local addr="$1"
+  ping -c 1 "$addr" >/dev/null 2>&1
+}
+
+
+ping_check()
+{
+  local addr="$1"
+  if ping_check_ "$addr"
+  then
+    echo "$I: Can reach $addr."
+  else
+    echo -e "$I: $WARNING: Cannot reach $addr."
+    exit_code=2
+  fi
+}
+
+
+puppetrun_addresses()
+{
+  master=$(cat "$VPX_ROLE")
+  if [ "$master" == "0" ]
+  then
+    local addrs=$((echo "$remote_addresses" | xargs -d' ' -ixx echo xx) | sort | uniq)
+    addrs=${addrs/localhost/}  # remove vpx master from the list
+    addrs=${addrs/127.0.0.1/}
+    for addr in $addrs
+    do
+      puppetrun_check "$addr"
+    done
+  fi
+}
+
+
+puppetrun_check_()
+{
+  local addr="$1"
+  puppet kick "$addr" >/dev/null 2>&1
+  return $?
+}
+
+
+puppetrun_check()
+{
+  local addr="$1"
+  set +e
+  puppetrun_check_ "$addr"
+  ret=$?
+  set -e
+  # Return code of 3 means that the kick has been
+  # successful but there is another run in execution
+  if [ $ret -eq 3 ] || [ $ret -eq 0 ]
+  then
+    echo "$I: Can execute tasks on $addr."
+  else
+    echo -e "$I: $WARNING: Cannot execute tasks on $addr."
+    exit_code=2
+  fi
+}
+
+
+geppetto_check_()
+{
+  /usr/bin/os-vpx-roles >/dev/null 2>&1
+}
+
+
+check_geppetto()
+{
+  if geppetto_check_
+  then
+    echo "$I: Can contact VPX Master."
+  else
+    echo -e "$I: $ERROR: Cannot contact VPX Master."
+    exit_code=1
+  fi
+}
+
+
+check_network_config
+check_fqdn
+check_dns
+echo
+check_geppetto
+check_xapi
+echo
+check_master_slave
+echo
+gather_addresses
+echo
+ping_addresses
+echo
+puppetrun_addresses
+
+exit $exit_code

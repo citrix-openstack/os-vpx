@@ -1,0 +1,3 @@
+VPX_LABEL_PREFIX='OpenStack VPX'
+VPX_DESCRIPTION='Managed by Geppetto'
+VPX_TAGS=[]

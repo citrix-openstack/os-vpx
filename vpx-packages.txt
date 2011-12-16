@@ -1,0 +1,48 @@
+less
+nano
+vim-tiny
+
+zip
+unzip
+gzip
+bzip2
+
+lsof
+net-tools
+strace
+telnet
+curl
+wget
+
+ntp
+isc-dhcp-server
+isc-dhcp-dev
+isc-dhcp-client
+
+expect
+
+!echo "exit 0" >/etc/default/bind9
+bind9
+!mv /etc/default/bind9{.dpkg-dist,} || true
+
+openssl
+openssh-client
+openssh-server
+
+python
+
+xfsprogs
+
+puppet
+puppetmaster
+
+!echo "exit 0" >/etc/default/rabbitmq
+rabbitmq-server
+!mv /etc/default/rabbitmq{.dpkg-dist,} || true
+
+mysql-client
+mysql-server
+
+euca2ools
+
+alien

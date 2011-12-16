@@ -1,0 +1,220 @@
+#!/usr/bin/env python2.6
+#
+# Script to create an ISO from physical media
+#
+# Steps:
+# Find VBD corresponding to physical media
+# Attach to VM
+# Run dd to extract iso
+
+import sys
+import os_vpx
+import subprocess
+import inspect
+import os
+import argparse
+import time
+
+
+def define_cmd_line_args_in_group(group):
+    group.add_argument('-g', '--glance', required=False, action='store_true',
+                         help='flag to upload generated iso to glance')
+    group.add_argument('-o', '--outputfile', required=False, type=str,
+                         help='path of output iso file to create')
+    group.add_argument('-m', '--mount', required=False, action='store_true',
+                         help='only eject/reattach /dev/cdrom to VM and do \
+                              nothing else')
+
+
+def define_cmd_line_args_in_parser(parser):
+    group.add_argument('-t', '--timewait', required=False, type=int,
+                         default=10,
+                         help='time to wait for /dev/cdrom to appear')
+    parser.add_argument('-i', '--imagename', required=False, type=str,
+                         default='temp_img',
+                         help='name of image file on glance if -g is \
+                               specified')
+    parser.add_argument('-a', '--authtoken', required=False, type=str,
+                         default='999888777666',
+                         help='authentication token for client to talk \
+                               to glance')
+    parser.add_argument('-H', '--hypervisor', required=False, type=str,
+                         default='any',
+                         help='Hypervisor on which the VM is to be \
+                               installed from this ISO image\
+                               [xenserver|esx|any]. Default value \
+                               of any is recommended.')
+    parser.add_argument('-p', '--public', required=False, type=str,
+                         default='true',
+                         help='Whether image is visible to nova-compute \
+                               or not')
+
+
+def get_cmd_line_args(parser):
+    args = parser.parse_args()
+    return args
+
+
+def upload_via_glance(auth_token, hypervisor, \
+                      glance_image_name, is_public_flag):
+    disk_format_specifier = 'disk_format=iso'
+    container_format_specifier = 'container_format=bare'
+    auth_token_specifier = '--auth_token=%s' % auth_token
+    hypervisor_specifier = 'hypervisor=%s' % hypervisor
+    operation = 'add'
+    cdrom_path = '/dev/cdrom'
+    glance_img_name_specifier = 'name=%s' % glance_image_name
+    is_public_specifier = 'is_public=%s' % is_public_flag
+
+    print "Calling glance now.. preparing arg list.."
+    arg_list = ["/usr/local/bin/glance", operation, \
+                 glance_img_name_specifier, \
+                 is_public_specifier, disk_format_specifier, \
+                 container_format_specifier, hypervisor_specifier, \
+                 auth_token_specifier]
+
+    print "Calling glance with the following args -"
+    print arg_list
+    try:
+        with open('/dev/cdrom') as f:
+            status = subprocess.call(arg_list, stdin=f)
+        if status != 0:
+            print "glance upload failed with exit status ", status
+            sys.exit(1)
+    except Exception as e:
+        print "Exception encountered by glance tool"
+        print e.args
+        print e.fault_list
+        sys.exit(1)
+
+
+def attach_cdrom_to_vm():
+    session = os_vpx.login()
+    # Obtain VDI from SR with physical CDs
+    sr_ref_set = session.xenapi.SR.get_all()
+
+    vdi_ref = None
+
+    for sr_ref in sr_ref_set:
+        sr_rec = session.xenapi.SR.get_record(sr_ref)
+        if not sr_rec['other_config'].\
+            has_key('i18n-original-value-name_label'):
+            continue
+        if not sr_rec['other_config']['i18n-original-value-name_label'] \
+            == 'DVD drives':
+            continue
+        vdi_ref = sr_rec['VDIs'][0]
+        break
+
+    if vdi_ref is None:
+        print ("No DVD/CDROM found !")
+        return 1
+
+    # Attach corresponding VBD to our VM
+    vdi_rec = session.xenapi.VDI.get_record(vdi_ref)
+    vbd_ref_set = vdi_rec['VBDs']
+
+    if len(vbd_ref_set) != 0:
+        # eject the VDI
+        session.xenapi.VBD.eject(vbd_ref_set[0])
+
+    # Find out CDROM, and insert the VDI.
+    vm_ref = os_vpx.get_vpx_ref(session)
+    vm_rec = session.xenapi.VM.get_record(vm_ref)
+
+    vbd_ref_set = vm_rec['VBDs']
+    vbd_cdrom_ref = None
+
+    for vbd_ref in vbd_ref_set:
+        vbd_rec = session.xenapi.VBD.get_record(vbd_ref)
+        if vbd_rec['type'] != 'CD':
+            continue
+        vbd_cdrom_ref = vbd_ref
+        break
+
+    if vbd_cdrom_ref is None:
+        print ("This VM does not have a DVD/CDROM drive!")
+        return 1
+
+    session.xenapi.VBD.insert(vbd_cdrom_ref, vdi_ref)
+
+    # Verify that the cdrom has been inserted.
+    # It takes a while for the /dev/cdrom file to be created.
+    # So sleep for a configured time.
+    cdrom_path = '/dev/cdrom'
+    dev_type = 'iso'
+    count = 0
+    print "Will timeout after " + str(timewait) + " seconds"
+    while not os.path.exists(cdrom_path) and count < timewait:
+        print "%s does not exist yet, waiting 1 second for \
+               it to appear" % (cdrom_path)
+        time.sleep(1)
+        count = count + 1
+
+    if (count > timewait or not os.path.exists(cdrom_path)):
+        print "CD-ROM did not mount within %s seconds, \
+               exiting" % (timewait)
+        return 1
+
+
+if __name__ == '__main__':
+    # Create an argparse object.
+    parser = argparse.ArgumentParser(description='This script \
+                         creates an ISO image \
+                         from the CD-ROM/DVD present in the \
+                         physical CD/DVD drive of the server \
+                         hosting this VPX, and stores the output \
+                         in the path specified in the -o flag. \
+                         If the -g flag is used instead, the \
+                         ripped ISO image is directly uploaded \
+                         to glance. Specifying the -m flag will \
+                         only attach /dev/cdrom to the VM and exit.')
+
+    # We won't allow -u, -m and -g to be specified together. The required=True
+    # tells the parser group that atleast and atmost one of the arguments
+    # must be specified.
+    group = parser.add_mutually_exclusive_group(required=True)
+    # Define the command line args this script takes by adding the options
+    # to the argparse object.
+    define_cmd_line_args_in_group(group)
+    define_cmd_line_args_in_parser(parser)
+
+    # Read in command line arguments.
+    args = get_cmd_line_args(parser)
+
+    # Now get the args.
+    if args.outputfile:
+        iso_file_name = args.outputfile[0]
+    glance_upload = args.glance
+    attach_cdrom = args.mount
+
+    timewait = args.timewait
+    glance_image_name = args.imagename
+    auth_token = args.authtoken
+    hypervisor = args.hypervisor
+    is_public_flag = args.public
+
+    if attach_cdrom:
+        rc = attach_cdrom_to_vm()
+        exit(rc)
+
+    if glance_upload and not glance_image_name:
+        print ("Please specify glance_image_name using -i option")
+        exit(1)
+
+    # Else, attach cdrom and rip it.
+    rc = attach_cdrom_to_vm()
+    if rc:
+        print ("Failed to attach /dev/cdrom to VM.. bailing.")
+        exit(rc)
+
+    if not glance_upload:
+        # Rip the iso
+        if_arg = "if=%s" % cdrom_path
+        of_arg = "of=%s" % iso_file_name
+        subprocess.Popen([r"dd", if_arg, of_arg]).wait()
+    else:
+        # If the -g flag has been specified, this ISO
+        # will be uploaded to glance.
+        upload_via_glance(auth_token, hypervisor, \
+                          glance_image_name, is_public_flag)

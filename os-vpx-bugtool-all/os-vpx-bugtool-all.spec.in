@@ -1,0 +1,23 @@
+Name: os-vpx-bugtool-all
+Summary: OS-VPX bugtool aggregator
+Version: @PRODUCT_VERSION@
+Release: @BUILD_NUMBER@
+Vendor: Citrix Systems, Inc.
+License: Proprietary
+Group: OpenStack/Management
+BuildRoot: %{_tmppath}/%{name}
+BuildArch: noarch
+Requires: bash
+
+%description
+
+%prep
+
+%build
+
+%install
+
+%clean
+
+%files
+%attr(0755, root, root) /usr/sbin/os-vpx-bugtool-all

@@ -1,0 +1,10 @@
+GUEST_NETWORK_BRIDGE='xenbr0'
+GUEST_NETWORK_DNS=''
+NETWORK_MANAGER=nova.network.manager.FlatManager
+COMPUTE_NETWORK_DRIVER=nova.network.linux_net
+COMPUTE_VLAN_INTERFACE=eth1
+NETWORK_NETWORK_DRIVER=nova.network.linux_net
+BRIDGE_INTERFACE=eth2
+FIREWALL_DRIVER=nova.virt.xenapi.firewall.Dom0IptablesFirewallDriver
+MULTI_HOST=False
+

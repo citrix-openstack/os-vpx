@@ -1,0 +1,37 @@
+Name: os-vpx-bugtool
+Summary: OS-VPX bugtool
+Version: @PRODUCT_VERSION@
+Release: @BUILD_NUMBER@
+Vendor: Citrix Systems, Inc.
+License: LGPL
+Group: OpenStack/Management
+BuildRoot: %{_tmppath}/%{name}
+BuildArch: noarch
+Source0: source.tar.gz
+Requires: python26
+
+%global python_sitelib /usr/lib/python2.6/site-packages
+
+%description
+
+%prep
+
+%build
+
+%install
+rm -rf $RPM_BUILD_ROOT
+mkdir -p $RPM_BUILD_ROOT
+cd $RPM_BUILD_ROOT
+mkdir -p usr/sbin
+mkdir -p .%{python_sitelib}
+tar xzf %{SOURCE0}
+mv os-vpx-bugtool usr/sbin
+mv bugtoolTarfile.py .%{python_sitelib}
+rm os-vpx-bugtool.cfg
+rm os-vpx-bugtool.spec.in
+
+%clean
+
+%files
+%attr(0755, root, root) /usr/sbin/os-vpx-bugtool
+%attr(0644, root, root) %{python_sitelib}/bugtoolTarfile.py

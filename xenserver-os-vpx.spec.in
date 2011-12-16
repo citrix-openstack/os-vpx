@@ -1,0 +1,35 @@
+Summary: OpenStack VPX
+Name: xenserver-os-vpx
+Version: @PRODUCT_VERSION@
+Release: @BUILD_NUMBER@
+License: See individual components
+Vendor: Citrix Systems, Inc.
+Group: XenServer/OpenStack
+BuildRoot: %{_tmppath}/%{name}
+BuildArch: noarch
+
+%description
+
+%prep
+
+%build
+
+%install
+
+%clean
+
+%posttrans
+/opt/xensource/packages/files/os-vpx/autoinstall-os-vpx.sh
+
+%preun
+/opt/xensource/packages/files/os-vpx/uninstall-os-vpx.sh
+
+%files
+%defattr(-,root,root,-)
+/opt/xensource/packages/files/os-vpx/65-install-os-vpx
+/opt/xensource/packages/files/os-vpx/os-vpx.xva
+%defattr(0755,root,root,-)
+/opt/xensource/packages/files/os-vpx/autoinstall-os-vpx.sh
+/opt/xensource/packages/files/os-vpx/install-os-vpx.sh
+/opt/xensource/packages/files/os-vpx/uninstall-os-vpx.sh
+/opt/xensource/packages/files/os-vpx/post-install.sh

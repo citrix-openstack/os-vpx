@@ -1,0 +1,10 @@
+. /etc/openstack/networking
+. /usr/share/os-vpx/networking.sh
+
+ip=$(get_ip_address "$PRIVATE_NIC")
+
+PORT="11211"
+USER="memcached"
+MAXCONN="1024"
+CACHESIZE="64"
+OPTIONS="-l $ip"

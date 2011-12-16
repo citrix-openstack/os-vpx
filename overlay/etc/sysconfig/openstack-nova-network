@@ -1,0 +1,26 @@
+. /etc/openstack/guest-network
+. /etc/openstack/mysql
+. /etc/openstack/rabbitmq
+
+OPTIONS="--rabbit_host=$RABBIT_HOST
+         --rabbit_port=$RABBIT_PORT
+         --rabbit_userid=$RABBIT_USER
+         --rabbit_password=$RABBIT_PASS
+         --sql_connection=mysql://$MYSQL_USER:$MYSQL_PASS@$MYSQL_HOST/nova
+         --network_manager=$NETWORK_MANAGER
+         --network_driver=$NETWORK_NETWORK_DRIVER
+         --vlan_interface=$NETWORK_VLAN_INTERFACE
+         --public_interface=$PUBLIC_INTERFACE
+         --flat_network_bridge=$GUEST_NETWORK_BRIDGE
+         --flat_network_dns=$GUEST_NETWORK_DNS
+         --flat_injected=true
+         --multi_host=$MULTI_HOST
+"
+
+if [ "$NETWORK_MANAGER" == "nova.network.manager.FlatManager" ]
+then
+    echo 0 > /proc/sys/net/ipv4/ip_forward
+else
+    echo 1 > /proc/sys/net/ipv4/ip_forward
+fi
+

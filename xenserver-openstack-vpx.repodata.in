@@ -1,0 +1,1 @@
+<requires product="XenServer" originator="@VENDOR_CODE@" name="@LABEL@" test="ge" version="@PRODUCT_VERSION@" />

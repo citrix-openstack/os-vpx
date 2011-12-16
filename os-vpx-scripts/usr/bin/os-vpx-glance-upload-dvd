@@ -1,0 +1,116 @@
+#!/usr/bin/env python2.6
+#
+# Script to upload the ISO from physical media directly to glance
+#
+# Steps:
+# Find VBD corresponding to physical media
+# Attach to VM
+# Wait until /dev/cdrom appears
+# Open /dev/cdrom as file, pass to Glance client for upload.
+
+
+import sys
+import os
+import time
+import os_vpx
+from glance.client import Client
+
+# Parse command line
+if len(sys.argv) < 2 or sys.argv[1] is not None:
+    print ("Call missing glance hostname and image name.  E.g.%s 127.0.0.1 my_dvd" % sys.argv[0]) 
+
+hostname = sys.argv[1]
+vm_name = sys.argv[2]
+
+# Test host name early on
+glance_client = Client(hostname, 9292)
+
+
+session = os_vpx.login()
+
+# Obtain VDI from SR with physical CDs
+sr_ref_set = session.xenapi.SR.get_all()
+
+vdi_ref = None
+
+for sr_ref in sr_ref_set:
+    sr_rec = session.xenapi.SR.get_record(sr_ref)
+    if not sr_rec['other_config'].has_key('i18n-original-value-name_label'):
+        continue
+    if not sr_rec['other_config']['i18n-original-value-name_label'] == 'DVD drives':
+        continue
+    vdi_ref = sr_rec['VDIs'][0]
+    break
+
+if vdi_ref is None:
+    print ("No DVD/CDROM found !")
+    exit()
+
+# Attach corresponding VBD to our VM
+vdi_rec = session.xenapi.VDI.get_record(vdi_ref)
+vbd_ref_set = vdi_rec['VBDs']
+
+if len(vbd_ref_set) != 0:
+    # eject the VDI
+    session.xenapi.VBD.eject(vbd_ref_set[0])
+    
+
+# Find out CDROM, and insert the VDI. 
+vm_ref = os_vpx.get_vpx_ref(session)
+vm_rec = session.xenapi.VM.get_record(vm_ref)
+
+vbd_ref_set = vm_rec['VBDs']
+vbd_cdrom_ref = None
+
+for vbd_ref in vbd_ref_set:
+    vbd_rec = session.xenapi.VBD.get_record(vbd_ref)
+    if vbd_rec['type'] != 'CD':
+        continue
+    vbd_cdrom_ref = vbd_ref
+    break
+
+if vbd_cdrom_ref is None:
+    print ("This VM does not have a DVD/CDROM drive!")
+    exit()
+
+session.xenapi.VBD.insert(vbd_cdrom_ref, vdi_ref)
+
+# Verify that the cdrom has been inserted
+filename = '/dev/cdrom'
+
+count = 0 
+max_wait = 12
+while not os.path.exists(filename) and count < max_wait: 
+    print "The %s does not exist yet! Waiting... a second for %s to appear" % (filename, filename )
+    time.sleep(1)
+    count = count + 1
+
+if ( count > max_wait):
+    print "CDROM did not mount within 10 seconds, exiting"
+    exit()
+
+# Upload image to Glance
+
+# Last known good spec can be derived from code in 
+# glance/upstream/glance/register/db/api.py@validate_image
+#
+# Cursory examination suggests following information is required:
+#                 'name': <NAME>,
+#                 'disk_format': <DISK_FORMAT>,
+#
+# We include 'is_public' for historical reasons.
+#
+meta = {'name': vm_name,
+        'disk_format': 'iso',
+        'container_format': None,
+        'is_public': True,
+        'properties': {}}
+
+meta['properties']['type'] = 'iso'
+
+print "About to upload all of %s, this may take a while!"  % (filename, )
+
+with open(filename) as f:
+    new_meta = glance_client.add_image(meta, f)
+
+print 'Stored image. Got identifier: %s' % new_meta
