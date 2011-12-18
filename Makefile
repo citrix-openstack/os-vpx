@@ -13,6 +13,7 @@ GEPPETTO_REPO := /repos/geppetto
 else
 COMPONENT := os-vpx
 include ../../mk/easy-config.mk
+REPO := .
 NOVA_BUILD_REPO := ../nova-build
 GLANCE_BUILD_REPO := ../glance-build
 SWIFT_BUILD_REPO := ../swift-build
