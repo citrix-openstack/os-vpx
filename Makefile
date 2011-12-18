@@ -38,8 +38,8 @@ DEVEL_FS_SIZE_MIB ?= 2000
 
 include $(REPO)/make-vpx.mk
 
-PLUGIN_SRC := $(NOVA_REPO)/upstream/plugins/xenserver/xenapi
-NETWORKING_SRC := $(NOVA_REPO)/upstream/plugins/xenserver/networking
+PLUGIN_SRC := $(NOVA_REPO)/plugins/xenserver/xenapi
+NETWORKING_SRC := $(NOVA_REPO)/plugins/xenserver/networking
 VIF_PATCH := $(REPO)/xenserver-openstack/vif-6.0.patch
 XENSERVER_OPENSTACK_OVERLAY := $(REPO)/xenserver-openstack/overlay
 
