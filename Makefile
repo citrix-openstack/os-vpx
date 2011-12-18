@@ -5,6 +5,7 @@ NO_DEFAULT_BUILD := yes
 include $(B_BASE)/common.mk
 include $(B_BASE)/rpmbuild.mk
 REPO := /repos/os-vpx
+NOVA_REPO := /repos/nova
 NOVA_BUILD_REPO := /repos/nova-build
 GLANCE_BUILD_REPO := /repos/glance-build
 SWIFT_BUILD_REPO := /repos/swift-build
@@ -14,6 +15,7 @@ else
 COMPONENT := os-vpx
 include ../../mk/easy-config.mk
 REPO := .
+NOVA_REPO := ../nova
 NOVA_BUILD_REPO := ../nova-build
 GLANCE_BUILD_REPO := ../glance-build
 SWIFT_BUILD_REPO := ../swift-build
