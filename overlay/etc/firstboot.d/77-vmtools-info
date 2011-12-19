@@ -45,4 +45,7 @@ then
     esx_kernel_cmd_line_content=$esx_kernel_cmd_line_content" ""$KEY_KERN_PARAM_VALUE"
 fi
 
-echo $esx_kernel_cmd_line_content > $ESX_CMDLINE_FILE
+if [[ $(uname -r) != *xen* ]]
+then
+	echo $esx_kernel_cmd_line_content > $ESX_CMDLINE_FILE
+fi
