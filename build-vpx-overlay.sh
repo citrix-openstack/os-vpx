@@ -128,7 +128,6 @@ chrootit "chmod u=rwx,go=rx /usr/local/bin/nova-dhcpbridge"
 # Glance
 chrootit "chmod u=rwx,go=rx /usr/local/bin/glance"
 chrootit "chmod u=rwx,go=rx /usr/local/bin/glance-manage"
-chrootit "chmod u=rwx,go=rx /usr/local/bin/glance-upload"
 # Swift
 chrootit "chmod u=rwx,go=rx /usr/local/bin/swift"
 
