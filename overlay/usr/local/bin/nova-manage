@@ -12,6 +12,13 @@ then
   LOGDIR="/var/log/$(whoami)/"
 fi
 
+if [ "$MULTI_HOST" = "true" ]
+then
+  multi_host_flag="--multi_host"
+else
+  multi_host_flag="--nomulti_host"
+fi
+
 OPTIONS="--sql_connection=mysql://$MYSQL_USER:$MYSQL_PASS@$MYSQL_HOST/nova
          --user_cert_subject=/C=$CRED_CERT_C/ST=$CRED_CERT_ST/L=$CRED_CERT_L/O=$CRED_CERT_O/OU=$CRED_CERT_OU/CN=%s-%s-%s
          --glance_api_servers=$GLANCE_HOSTNAME:$API_BIND_PORT
@@ -24,7 +31,7 @@ OPTIONS="--sql_connection=mysql://$MYSQL_USER:$MYSQL_PASS@$MYSQL_HOST/nova
          --flagfile=/etc/nova/nova-manage.conf
          --logdir=$LOGDIR
          --verbose
-         --multi_host=$MULTI_HOST
+         ${multi_host_flag}
 "
 
 /usr/bin/nova-manage $OPTIONS "$@"
