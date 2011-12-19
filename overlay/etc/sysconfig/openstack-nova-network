@@ -13,7 +13,7 @@ OPTIONS="--rabbit_host=$RABBIT_HOST
          --public_interface=$PUBLIC_INTERFACE
          --flat_network_bridge=$GUEST_NETWORK_BRIDGE
          --flat_network_dns=$GUEST_NETWORK_DNS
-         --flat_injected=true
+         --flat_injected
          --multi_host=$MULTI_HOST
 "
 

@@ -19,11 +19,11 @@ OPTIONS="--sql_connection=mysql://$MYSQL_USER:$MYSQL_PASS@$MYSQL_HOST/nova
          --flat_interface=$BRIDGE_INTERFACE
          --flat_network_bridge=$GUEST_NETWORK_BRIDGE
          --flat_network_dns=$GUEST_NETWORK_DNS
-         --flat_injected=true
+         --flat_injected
          --vlan_interface=$BRIDGE_INTERFACE         
          --flagfile=/etc/nova/nova-manage.conf
          --logdir=$LOGDIR
-         --verbose=true
+         --verbose
          --multi_host=$MULTI_HOST
 "
 

@@ -20,13 +20,13 @@ OPTIONS="--rabbit_host=$RABBIT_HOST
          --glance_api_servers=$GLANCE_HOSTNAME:$API_BIND_PORT
          --sql_connection=mysql://$MYSQL_USER:$MYSQL_PASS@$MYSQL_HOST/nova
          --network_manager=$NETWORK_MANAGER
-         --flat_injected=true
+         --flat_injected
          --iscsi_ip_prefix=$ISCSI_IP_PREFIX
          --volume_driver=$VOLUME_DRIVER
          --use_local_volumes=$USE_LOCAL_VOLUMES
          --firewall_driver=$FIREWALL_DRIVER
          --vlan_interface=$COMPUTE_VLAN_INTERFACE
-         --use_cow_images=true
+         --use_cow_images
 "
 
 . /etc/sysconfig/openstack-nova-compute-$HAPI_DRIVER-virt
