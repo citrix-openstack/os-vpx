@@ -8,15 +8,13 @@ from geppetto.geppettolib import puppet
 
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'geppetto.settings'
-from geppetto.core.models.infrastructure import REPORT_STATUS_CHOICES
+from geppetto.core.models.infrastructure import ReportStatus
 from os_vpx import printing
 
 
 p = puppet.PuppetNode()
 master_fqdn = p.get_puppet_option('server')
 master_url = 'http://%s:8080/openstack/geppetto/v1' % master_fqdn
-
-report_status_choices = dict(REPORT_STATUS_CHOICES)
 
 proxy = xmlrpclib.ServerProxy(master_url)
 
@@ -25,7 +23,7 @@ nodes = proxy.Node.get_details(proxy.Node.get_all())
 table = []
 for fqdn, details in nodes.iteritems():
     table.append([details['id'], fqdn,
-                  report_status_choices[details['report_status']]])
+                  ReportStatus.choices[details['report_status']]])
 table.sort(lambda x, y: x[0] - y[0])
 table.insert(0, ['--', '----', '-------------'])
 table.insert(0, ['ID', 'FQDN', 'Report status'])
