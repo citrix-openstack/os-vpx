@@ -31,7 +31,7 @@ OPTIONS="--sql_connection=mysql://$MYSQL_USER:$MYSQL_PASS@$MYSQL_HOST/nova
          --flagfile=/etc/nova/nova-manage.conf
          --logdir=$LOGDIR
          --verbose
-         ${multi_host_flag}
+         $multi_host_flag
 "
 
 /usr/bin/nova-manage $OPTIONS "$@"

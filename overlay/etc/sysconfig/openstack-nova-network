@@ -2,6 +2,13 @@
 . /etc/openstack/mysql
 . /etc/openstack/rabbitmq
 
+if [ "$MULTI_HOST" = "true" ]
+then
+  multi_host_flag="--multi_host"
+else
+  multi_host_flag="--nomulti_host"
+fi
+
 OPTIONS="--rabbit_host=$RABBIT_HOST
          --rabbit_port=$RABBIT_PORT
          --rabbit_userid=$RABBIT_USER
@@ -14,7 +21,7 @@ OPTIONS="--rabbit_host=$RABBIT_HOST
          --flat_network_bridge=$GUEST_NETWORK_BRIDGE
          --flat_network_dns=$GUEST_NETWORK_DNS
          --flat_injected
-         --multi_host=$MULTI_HOST
+         $multi_host_flag
 "
 
 if [ "$NETWORK_MANAGER" == "nova.network.manager.FlatManager" ]
