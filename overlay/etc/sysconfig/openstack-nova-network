@@ -2,7 +2,7 @@
 . /etc/openstack/mysql
 . /etc/openstack/rabbitmq
 
-if [ "$MULTI_HOST" = "true" ]
+if [ "$MULTI_HOST" = "True" ]
 then
   multi_host_flag="--multi_host"
 else

@@ -12,6 +12,13 @@ then
     COMPUTE_VLAN_INTERFACE=$(/usr/local/bin/geppetto/os-vpx/host-details-get default-vlan-if)
 fi 
 
+if [ "$USE_LOCAL_VOLUMES" = "True" ]
+then
+  use_local_volumes_flag="--use_local_volumes"
+else
+  use_local_volumes_flag="--nouse_local_volumes"
+fi
+
 OPTIONS="--rabbit_host=$RABBIT_HOST
          --rabbit_port=$RABBIT_PORT
          --rabbit_userid=$RABBIT_USER
@@ -23,7 +30,7 @@ OPTIONS="--rabbit_host=$RABBIT_HOST
          --flat_injected
          --iscsi_ip_prefix=$ISCSI_IP_PREFIX
          --volume_driver=$VOLUME_DRIVER
-         --use_local_volumes=$USE_LOCAL_VOLUMES
+         $use_local_volumes_flag
          --firewall_driver=$FIREWALL_DRIVER
          --vlan_interface=$COMPUTE_VLAN_INTERFACE
          --use_cow_images
