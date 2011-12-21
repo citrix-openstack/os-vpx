@@ -39,6 +39,9 @@ DEVEL_FS_SIZE_MIB ?= 2000
 include $(REPO)/make-vpx.mk
 
 PLUGIN_SRC := $(NOVA_REPO)/plugins/xenserver/xenapi
+PLUGIN_SRC_SR := $(REPO)/opt/xensource/sm
+PLUGIN_SRC_ISO_SR_CREATE := $(REPO)/opt/xensource/bin/
+PLUGIN_SRC_ISO_SR_FIRSTBOOT := $(REPO)/opt/xensource/packages/files/xs
 NETWORKING_SRC := $(NOVA_REPO)/plugins/xenserver/networking
 VIF_PATCH := $(REPO)/xenserver-openstack/vif-6.0.patch
 XENSERVER_OPENSTACK_OVERLAY := $(REPO)/xenserver-openstack/overlay
@@ -121,7 +124,6 @@ PLUGIN_RPM_LINK := $(MY_OUTPUT_DIR)/xenserver-openstack.noarch.rpm
 BUGTOOL_ALL_RPM_LINK := $(MY_OUTPUT_DIR)/os-vpx-bugtool-all.noarch.rpm
 INSTALL_SH := $(MY_OUTPUT_DIR)/install-os-vpx.sh
 UNINSTALL_SH := $(MY_OUTPUT_DIR)/uninstall-os-vpx.sh
-CREATE_ISO_SR_SH := $(MY_OUTPUT_DIR)/xs-iso-sr-create.sh
 ESX_DEPLOY_TOOLS_DIR := $(MY_OUTPUT_DIR)/deploy_tools
 ESX_INSTALL_SCRIPT := $(ESX_DEPLOY_TOOLS_DIR)/install-os-vpx-esxi.py
 ESX_UNINSTALL_SCRIPT := $(ESX_DEPLOY_TOOLS_DIR)/uninstall-os-vpx-esxi.py
@@ -183,7 +185,6 @@ OUTPUT := $(OUTPUT_VPXS) \
          $(PLUGIN_RPM_LINK) \
          $(BUGTOOL_ALL_RPM_LINK) \
          $(INSTALL_SH) $(UNINSTALL_SH) \
-         $(CREATE_ISO_SR_SH) \
          $(ESX_DEPLOY_TOOLS) \
          $(ESX_INSTALL_SCRIPT) $(ESX_UNINSTALL_SCRIPT) \
          $(ESX_NETWORK_SETUP_SCRIPT) \
@@ -396,18 +397,38 @@ $(VPX_SUPP_PACK_REPODATA): $(VPX_SUPP_PACK_REPODATA_IN)
 $(PLUGIN_RPM): DEST := /etc/xapi.d/plugins
 $(PLUGIN_RPM): TMPDIR := $(RPM_BUILD_DIRECTORY)/tmp/xenserver-openstack
 $(PLUGIN_RPM): TMPDEST := $(TMPDIR)/$(DEST)
+$(PLUGIN_RPM): DEST_SR := /opt/xensource/sm
+$(PLUGIN_RPM): TMPDEST_SR := $(TMPDIR)/$(DEST_SR)
+$(PLUGIN_RPM): DEST_ISO_SR_CREATE := /opt/xensource/bin
+$(PLUGIN_RPM): TMPDEST_ISO_SR_CREATE := $(TMPDIR)/$(DEST_ISO_SR_CREATE)
+$(PLUGIN_RPM): DEST_ISO_SR_FIRSTBOOT := /opt/xensource/packages/files/xs
+$(PLUGIN_RPM): TMPDEST_ISO_SR_FIRSTBOOT := $(TMPDIR)/$(DEST_ISO_SR_FIRSTBOOT)
 $(PLUGIN_RPM): $(PLUGIN_SPEC) \
-	       $(shell find $(PLUGIN_SRC) -type f) \
-	       $(shell find $(NETWORKING_SRC) -type f) \
-	       $(VIF_PATCH) \
-	       $(shell find $(XENSERVER_OPENSTACK_OVERLAY) -type f)
+			$(shell find $(PLUGIN_SRC) -type f) \
+			$(shell find $(PLUGIN_SRC_SR) -type f) \
+			$(shell find $(PLUGIN_SRC_ISO_SR_CREATE) -type f) \
+			$(shell find $(PLUGIN_SRC_ISO_SR_FIRSTBOOT) -type f) \
+			$(shell find $(NETWORKING_SRC) -type f) \
+			$(VIF_PATCH) \
+			$(shell find $(XENSERVER_OPENSTACK_OVERLAY) -type f)
 	mkdir -p $(dir $@)
 	mkdir -p $(TMPDEST)
+	mkdir -p $(TMPDEST_SR)
+	mkdir -p $(TMPDEST_ISO_SR_CREATE)
+	mkdir -p $(TMPDEST_ISO_SR_FIRSTBOOT)
 	cp $(PLUGIN_SRC)/$(DEST)/* $(TMPDEST)
 	chmod a+x $(TMPDEST)/*
+	cp $(PLUGIN_SRC_SR)/* $(TMPDEST_SR)
+	chmod a+x $(TMPDEST_SR)/*
+	cp $(PLUGIN_SRC_ISO_SR_CREATE)/* \
+		$(TMPDEST_ISO_SR_CREATE)
+	chmod a+x $(TMPDEST_ISO_SR_CREATE)/*
+	cp $(PLUGIN_SRC_ISO_SR_FIRSTBOOT)/* \
+		$(TMPDEST_ISO_SR_FIRSTBOOT)
+	chmod a+x $(TMPDEST_ISO_SR_FIRSTBOOT)/*
 	cp -r $(NETWORKING_SRC)/* $(TMPDIR)
 	cd $(XENSERVER_OPENSTACK_OVERLAY) && find . -name .\*\~ -o \
-	    -exec cp --parents \{\} $(TMPDIR) \;
+		-exec cp --parents \{\} $(TMPDIR) \;
 	cp $(VIF_PATCH) $(TMPDIR)/etc/xensource/scripts/
 	$(RPMBUILD) -bb $<
 
@@ -450,7 +471,7 @@ $(MY_OBJ_DIR)/%.spec: os-vpx-scripts/%.spec.in
 	mkdir -p $(dir $@)
 	$(call brand,$^) >$@
 
-$(INSTALL_SH) $(UNINSTALL_SH) $(CREATE_ISO_SR_SH) : $(MY_OUTPUT_DIR)/%: $(REPO)/%
+$(INSTALL_SH) $(UNINSTALL_SH) : $(MY_OUTPUT_DIR)/%: $(REPO)/%
 	cp $< $@
 	chmod a+x $@
 

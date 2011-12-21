@@ -31,6 +31,8 @@ exit 0
 exit 0
 
 %posttrans
+ln -s /opt/xensource/sm/LocalISOSR.py /opt/xensource/sm/LocalISOSR
+/opt/xensource/packages/files/xs/autoinstall-xapi-sm.sh
 chkconfig openvswitch-nova on
 cd /etc/xensource/scripts; patch -f -s <vif-6.0.patch vif
 
@@ -49,8 +51,12 @@ cd /etc/xensource/scripts; patch -R -f -s <vif-6.0.patch vif
 /etc/xapi.d/plugins/pluginlib_nova.py
 /etc/xapi.d/plugins/xenhost
 /etc/xapi.d/plugins/xenstore.py
+/opt/xensource/bin/xs-create-iso-sr
+/opt/xensource/packages/files/xs/64-xs-create-iso-sr
+/opt/xensource/packages/files/xs/autoinstall-xapi-sm.sh
 %attr(0755, root, root) /etc/xensource/scripts/apply-vif-rules
 /etc/xensource/scripts/novalib.py
 /etc/xensource/scripts/ovs_configure_base_flows.py
 /etc/xensource/scripts/ovs_configure_vif_flows.py
 /etc/xensource/scripts/vif-6.0.patch
+/opt/xensource/sm/LocalISOSR.py
