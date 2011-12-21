@@ -1,4 +1,4 @@
 MYSQL_HOST=localhost
 MYSQL_USER=root
 MYSQL_PASS=citrix
-MYSQL_DBS='nova, glance'
+MYSQL_DBS='nova, glance, keystone'

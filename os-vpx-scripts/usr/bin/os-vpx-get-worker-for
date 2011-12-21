@@ -5,14 +5,13 @@
 import sys
 import xmlrpclib
 
-from geppetto.geppettolib import puppet
+from geppetto.geppettolib.puppet import PuppetNode
 
 if not sys.argv[1]:
     print 'Usage: os-vpx-get-worker-for <role>'
     sys.exit(1)
 
-p = puppet.PuppetNode()
-master_fqdn = p.get_puppet_option('server')
+master_fqdn = PuppetNode.get_puppet_option('server')
 master_url = 'http://%s:8080/openstack/geppetto/v1' % master_fqdn
 
 proxy = xmlrpclib.ServerProxy(master_url)

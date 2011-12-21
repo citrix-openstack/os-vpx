@@ -21,7 +21,7 @@ import socket
 import sys
 import xmlrpclib
 
-from geppetto.geppettolib import puppet
+from geppetto.geppettolib.puppet import PuppetNode
 
 # Set connection timeout to 30 secs
 socket.setdefaulttimeout(30)
@@ -45,7 +45,7 @@ if __name__ == "__main__":
             print "API Argument List: %s" % parsed_args
 
             try:
-                master_fqdn = puppet.PuppetNode().get_puppet_option('server')
+                master_fqdn = PuppetNode.get_puppet_option('server')
             except:
                 # fall back on localhost
                 master_fqdn = 'localhost'
