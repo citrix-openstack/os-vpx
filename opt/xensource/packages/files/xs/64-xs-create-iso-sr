@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -eu
+
+start()
+{
+  echo "waiting for xapi to be up"
+  while [ 1 ]; do
+    uuid=`xe pool-list --minimal params=master`
+    res=`xe host-list --minimal params=enabled uuid=$uuid`
+    if [ "$res" != 'true' ]; then
+      sleep 1;
+    else
+      break
+    fi
+  done
+  /opt/xensource/bin/xs-create-iso-sr
+}
+
+case $1 in
+  start) start ;;
+esac
+
