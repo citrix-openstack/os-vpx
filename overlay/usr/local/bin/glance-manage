@@ -2,7 +2,7 @@
 
 . /etc/openstack/mysql
 
-OPTIONS="--sql-connection=mysql://$MYSQL_USER:$MYSQL_PASS@$MYSQL_HOST/glance
+OPTIONS="--sql_connection=mysql://$MYSQL_USER:$MYSQL_PASS@$MYSQL_HOST/glance
 "
 
 /usr/bin/glance-manage $OPTIONS "$@"
