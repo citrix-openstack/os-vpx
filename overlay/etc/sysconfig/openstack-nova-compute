@@ -30,10 +30,11 @@ OPTIONS="--rabbit_host=$RABBIT_HOST
          --flat_injected
          --iscsi_ip_prefix=$ISCSI_IP_PREFIX
          --volume_driver=$VOLUME_DRIVER
-         $use_local_volumes_flag
          --firewall_driver=$FIREWALL_DRIVER
          --vlan_interface=$COMPUTE_VLAN_INTERFACE
          --use_cow_images
+         --sr_matching_filter=default-sr:true
+         $use_local_volumes_flag
 "
 
 . /etc/sysconfig/openstack-nova-compute-$HAPI_DRIVER-virt
