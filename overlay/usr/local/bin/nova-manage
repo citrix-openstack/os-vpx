@@ -30,6 +30,7 @@ OPTIONS="--sql_connection=mysql://$MYSQL_USER:$MYSQL_PASS@$MYSQL_HOST/nova
          --vlan_interface=$BRIDGE_INTERFACE         
          --flagfile=/etc/nova/nova-manage.conf
          --logdir=$LOGDIR
+         --connection_type=other
          $multi_host_flag
 "
 
