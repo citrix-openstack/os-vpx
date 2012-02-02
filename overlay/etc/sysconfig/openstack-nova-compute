@@ -32,8 +32,8 @@ OPTIONS="--rabbit_host=$RABBIT_HOST
          --volume_driver=$VOLUME_DRIVER
          --firewall_driver=$FIREWALL_DRIVER
          --vlan_interface=$COMPUTE_VLAN_INTERFACE
-         --use_cow_images=True
-         --cache_images=True
+         --use_cow_images
+         --cache_images
          --sr_matching_filter=default-sr:true
          $use_local_volumes_flag
 "
