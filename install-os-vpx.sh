@@ -9,6 +9,7 @@ DATA_VDI_SIZE="500MiB"
 DATA_DISK_VDI=
 BRIDGE_M=
 BRIDGE_P=
+BRIDGE_G=
 KERNEL_PARAMS=
 VPX_FILE=os-vpx.xva
 AS_TEMPLATE=
@@ -87,7 +88,7 @@ EOF
 
 get_params()
 {
-  while getopts "hic:wbf:a:d:m:p:k:l:o:r:" OPTION; 
+  while getopts "hic:wbf:a:d:m:p:g:k:l:o:r:" OPTION; 
   do
     case $OPTION in
       h) usage
@@ -117,6 +118,9 @@ get_params()
          ;;
       m)
          BRIDGE_M=$OPTARG
+         ;;
+      g)
+         BRIDGE_G=$OPTARG
          ;;
       p)
          BRIDGE_P=$OPTARG
@@ -241,8 +245,13 @@ create_gi_vif()
   # Note that we've made the outbound device eth1, so that it comes up after
   # the guest installer VIF, which means that the outbound one wins in terms
   # of gateway.
-  local gi_network_uuid=$(xe_min network-list \
+  if [[ -n $BRIDGE_G ]]
+  then
+    local gi_network_uuid=$(xe_min network-list bridge=$BRIDGE_G)
+  else
+    local gi_network_uuid=$(xe_min network-list \
                                  other-config:is_guest_installer_network=true)
+  fi
   create_vif "$v" "$gi_network_uuid" "0" >/dev/null
 }
 
@@ -340,7 +349,7 @@ create_data_disk()
     xe vdi-param-set \
        other-config:os-vpx-data=true \
        uuid="$data_vdi_uuid"
-    dom0_uuid=$(xe_min vm-list is-control-domain=true)
+    dom0_uuid=$(xe_min vm-list is-control-domain=true resident-on=$INSTALLATION_UUID)
     vbd_uuid=$(xe vbd-create device=autodetect type=Disk \
                              vdi-uuid="$data_vdi_uuid" vm-uuid="$dom0_uuid")
     xe vbd-plug uuid=$vbd_uuid
