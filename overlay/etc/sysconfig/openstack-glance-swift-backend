@@ -1,5 +1,0 @@
-STORE_OPTIONS="--default_store=swift \
-               --swift_store_auth_address=http://$KEYSTONE_HOST:5000/v1.0 \
-               --swift_store_user=$KEYSTONE_SUPERUSER_NAME \
-               --swift_store_key=$GLANCE_SWIFT_STORE_KEY
-" 

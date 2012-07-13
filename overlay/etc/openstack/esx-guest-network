@@ -1,5 +1,0 @@
-GUEST_NETWORK_BRIDGE='vmnet0'
-GUEST_NETWORK_DNS=''
-NETWORK_MANAGER=nova.network.manager.FlatManager
-COMPUTE_NETWORK_DRIVER=nova.network.linux_net
-

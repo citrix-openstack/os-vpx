@@ -1,4 +1,0 @@
-. /etc/openstack/mysql
-
-sed -e "s,sql_connection = .*,sql_connection = mysql://$MYSQL_USER:$MYSQL_PASS@$MYSQL_HOST/keystone," \
-    -i /etc/keystone/keystone.conf

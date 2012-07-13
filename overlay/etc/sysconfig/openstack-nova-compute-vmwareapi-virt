@@ -1,7 +1,0 @@
-. /etc/openstack/vmware-url
-
-VIRT_OPTIONS="--vmwareapi_host_ip=$VMWARE_HOST \
-              --vmwareapi_host_username=$HAPI_USER \
-              --vmwareapi_host_password=$HAPI_PASS \
-              --vmwareapi_wsdl_loc=$VMWAREAPI_WSDL_LOC
-" 

@@ -1,6 +1,0 @@
-. /etc/openstack/xapi-url
-
-VIRT_OPTIONS="--xenapi_connection_url=$XAPI_URL \
-              --xenapi_connection_username=$HAPI_USER \
-              --xenapi_connection_password=$HAPI_PASS
-"

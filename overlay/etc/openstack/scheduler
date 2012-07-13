@@ -1,3 +1,0 @@
-SCHEDULER_COMPUTE_DRIVER=nova.scheduler.simple.SimpleScheduler
-SCHEDULER_VOLUME_DRIVER=nova.scheduler.simple.SimpleScheduler
-SCHEDULER_DEFAULT_HOST_FILTER=AllHostsFilter

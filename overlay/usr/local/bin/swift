@@ -1,8 +1,0 @@
-#!/bin/sh
-
-. /etc/openstack/keystone
-
-OPTIONS="-A http://$KEYSTONE_HOST:5000/v1.0
-"
-
-/usr/bin/swift $OPTIONS "$@"
